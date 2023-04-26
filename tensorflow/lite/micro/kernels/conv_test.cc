@@ -127,9 +127,6 @@ TF_LITE_MICRO_TEST(SimpleTestQuantizedPerChannel) {
 
 #endif  // !defined(VISION_P6)
 
-#if !defined(XTENSA)  // TODO(b/170321206): xtensa kernels are less general than
-                      // reference kernels and we ifdef out test cases that are
-                      // currently known to fail.
 
 TF_LITE_MICRO_TEST(SimpleTestFloat) {
   float output_data[tflite::testing::kOutputElements];
@@ -164,6 +161,10 @@ TF_LITE_MICRO_TEST(InputAndFilterSameWidthHeight) {
           expected_output, &tflite::testing::common_conv_params,
           tflite::Register_CONV_2D(), output_data));
 }
+
+#if !defined(XTENSA)  // TODO(b/170321206): xtensa kernels are less general than
+                      // reference kernels and we ifdef out test cases that are
+                      // currently known to fail.
 
 TF_LITE_MICRO_TEST(InputOutputDifferentTypeIsError) {
   using tflite::testing::CreateQuantizedTensor;

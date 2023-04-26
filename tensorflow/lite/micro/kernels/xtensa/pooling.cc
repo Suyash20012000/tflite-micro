@@ -99,8 +99,12 @@ TfLiteStatus MaxEval(TfLiteContext* context, TfLiteNode* node) {
 
   switch (input->type) {
     case kTfLiteFloat32: {
+#if HIFI_VFPU && (defined(HIFI5) || defined(HIFI4))
+      MaxEvalFloatHifi(context, node, params, op_data, input, output);
+#else      
       MaxPoolingEvalFloat(context, node, params, reference_op_data, input,
                           output);
+#endif // HIFI_VFPU && defined(HIFI5) || defined(HIFI4)                 
       break;
     }
     case kTfLiteInt8: {

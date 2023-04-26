@@ -81,6 +81,24 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
       context, op_data.reference_op_data.filter_buffer_index, filter);
 
   switch (input->type) {
+    case kTfLiteFloat32: {
+#if HIFI_VFPU && (defined(HIFI4) || defined(HIFI5))
+      ConvEvalHifiFloat(context, node, params, op_data, input, filter, bias, output);
+#else
+      const auto& data = *(static_cast<const OpDataConv*>(node->user_data));
+      tflite::reference_ops::Conv(
+          ConvParamsFloat(params, data), tflite::micro::GetTensorShape(input),
+          tflite::micro::GetTensorData<float>(input),
+          tflite::micro::GetTensorShape(filter),
+          tflite::micro::GetTensorData<float>(filter),
+          tflite::micro::GetTensorShape(bias),
+          tflite::micro::GetOptionalTensorData<float>(bias),
+          tflite::micro::GetTensorShape(output),
+          tflite::micro::GetTensorData<float>(output),
+          tflite::micro::GetTensorShape(nullptr), nullptr);
+#endif // HIFI_VFPU && (defined(HIFI4) || defined(HIFI5))
+      break;
+    }
     case kTfLiteInt8: {
       switch (filter_int8.type) {
         case kTfLiteInt8: {

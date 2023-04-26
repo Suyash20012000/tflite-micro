@@ -65,6 +65,13 @@ TfLiteStatus MaxEvalQuantizedHifi(TfLiteContext* context, TfLiteNode* node,
                                   const XtensaOpDataPooling* data,
                                   const TfLiteEvalTensor* input,
                                   TfLiteEvalTensor* output);
+#if HIFI_VFPU 
+TfLiteStatus MaxEvalFloatHifi(TfLiteContext* context, TfLiteNode* node,
+                                  TfLitePoolParams* params,
+                                  const XtensaOpDataPooling* data,
+                                  const TfLiteEvalTensor* input,
+                                  TfLiteEvalTensor* output);
+#endif // HIFI_VFPU
 
 #endif  // defined(HIFI5)
 

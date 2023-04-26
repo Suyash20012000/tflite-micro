@@ -86,7 +86,7 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
       switch (filter_int8.type) {
         case kTfLiteInt8: {
 #if defined(HIFI4) || defined(HIFI5)
-          DepthwiseConvEvalHifi(context, node, params, op_data, input,
+          DepthwiseConvInt8EvalHifi(context, node, params, op_data, input,
                                 &filter_int8, bias, output);
 #elif defined(VISION_P6)
           DepthwiseConvEvalVision(context, node, params, op_data, input,
@@ -114,6 +114,25 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
       }
       break;
     }
+    case kTfLiteFloat32: {
+#if HIFI_VFPU && (defined(HIFI4) || defined(HIFI5))
+      DepthwiseConvFloat32EvalHifi(context, node, params, op_data, input,
+                                 filter, bias, output);
+#else
+      const OpDataConv& data = *(static_cast<const OpDataConv*>(node->user_data));
+      tflite::reference_ops::DepthwiseConv(
+          DepthwiseConvParamsFloat(params, data),
+          tflite::micro::GetTensorShape(input),
+          tflite::micro::GetTensorData<float>(input),
+          tflite::micro::GetTensorShape(filter),
+          tflite::micro::GetTensorData<float>(filter),
+          tflite::micro::GetTensorShape(bias),
+          tflite::micro::GetOptionalTensorData<float>(bias),
+          tflite::micro::GetTensorShape(output),
+          tflite::micro::GetTensorData<float>(output));
+#endif  // HIFI_VFPU && (defined(HIFI4) || defined(HIFI5))
+          break;
+        }
     default:
       MicroPrintf("Type %s (%d) not supported.", TfLiteTypeGetName(input->type),
                   input->type);

@@ -27,6 +27,9 @@ limitations under the License.
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/kernels/xtensa/xtensa.h"
 #include "tensorflow/lite/micro/kernels/xtensa/xtensa_conv.h"
+#if HIFI_VFPU
+#include "tensorflow/lite/kernels/internal/reference/conv.h"
+#endif
 
 namespace tflite {
 
@@ -85,6 +88,14 @@ TfLiteStatus ConvPrepareHifi(TfLiteContext* context, TfLiteNode* node) {
           pad_height, output_height, output_channels, PREC_SYM16S);
       TF_LITE_ENSURE(context, required_scratch > 0);
     }
+#if HIFI_VFPU 
+    if (input->type == kTfLiteFloat32) {
+        required_scratch = xa_nn_conv2d_std_getsize(
+          input_height, input_depth, filter_height, filter_width, stride_height,
+          pad_height, output_height, output_channels, PREC_F32);
+          TF_LITE_ENSURE(context, required_scratch > 0);
+    }
+#endif // HIFI_VFPU  
   }
   TF_LITE_ENSURE_OK(
       context, context->RequestScratchBufferInArena(
@@ -95,6 +106,98 @@ TfLiteStatus ConvPrepareHifi(TfLiteContext* context, TfLiteNode* node) {
   micro_context->DeallocateTempTfLiteTensor(output);
   return kTfLiteOk;
 }
+
+#if HIFI_VFPU
+TfLiteStatus ConvEvalHifiFloat(TfLiteContext* context, TfLiteNode* node,
+                          const TfLiteConvParams& params,
+                          const XtensaConvOpData& data,
+                          const TfLiteEvalTensor* input,
+                          const TfLiteEvalTensor* filter,
+                          const TfLiteEvalTensor* bias,
+                          TfLiteEvalTensor* output) {
+  const RuntimeShape& input_shape = tflite::micro::GetTensorShape(input);
+  const RuntimeShape& filter_shape = tflite::micro::GetTensorShape(filter);
+
+  const int stride_width = params.stride_width;
+  const int stride_height = params.stride_height;
+  const int pad_width = data.reference_op_data.padding.width;
+  const int pad_height = data.reference_op_data.padding.height;
+
+  const RuntimeShape& output_shape = tflite::micro::GetTensorShape(output);
+  const int batches = MatchingDim(input_shape, 0, output_shape, 0);
+  const int input_depth = MatchingDim(input_shape, 3, filter_shape, 3);
+  const int output_depth = MatchingDim(filter_shape, 0, output_shape, 3);
+  const int input_height = input_shape.Dims(1);
+  const int input_width = input_shape.Dims(2);
+  const int filter_height = filter_shape.Dims(1);
+  const int filter_width = filter_shape.Dims(2);
+  const int output_height = output_shape.Dims(1);
+  const int output_width = output_shape.Dims(2);
+
+  const float* input_data = tflite::micro::GetTensorData<float>(input);
+  const float* filter_data = tflite::micro::GetTensorData<float>(filter);
+  const float* bias_data = tflite::micro::GetTensorData<float>(bias);
+  float* output_data = tflite::micro::GetTensorData<float>(output);
+
+  int output_data_format = 0;
+  int out_length = output_height * output_width * output_depth;
+  
+  if (filter_height == 1 && filter_width == 1 && stride_width == 1 && stride_height == 1 &&
+      pad_width == 0 && pad_height == 0 && (input_height == output_height) && (input_width == output_width)) {
+    for (int batch = 0; batch < batches; ++batch) {
+      float* p_out_temp;
+      p_out_temp = &output_data[batch * out_length];
+
+      TF_LITE_ENSURE_EQ(
+          context,
+          xa_nn_conv2d_pointwise_f32(
+              p_out_temp, const_cast<float*>(filter_data),
+              const_cast<float*>(&input_data[batch * input_height *
+                                             input_width * input_depth]),
+              const_cast<float*>(bias_data), input_height, input_width,
+              input_depth, output_depth, output_data_format),
+          0);
+    }
+  } else if ((params.dilation_width_factor == 1) &&
+          (params.dilation_height_factor == 1)) {
+    void* p_scratch = static_cast<void*>(
+        context->GetScratchBuffer(context, data.scratch_tensor_index));
+
+    for (int batch = 0; batch < batches; ++batch) {
+      float* p_out_temp;
+      p_out_temp = &output_data[batch * out_length];
+
+      TF_LITE_ENSURE_EQ(
+          context,
+          xa_nn_conv2d_std_f32(
+              p_out_temp,
+              &input_data[batch * input_height * input_width * input_depth],
+              const_cast<float*>(filter_data),  // filter_data,
+              bias_data, input_height, input_width, input_depth,
+              filter_height, filter_width, output_depth, stride_width,
+              stride_height, pad_width, pad_height, output_height,
+              output_width, output_data_format,
+              static_cast<void*>(p_scratch)),
+          0);
+    }
+  }
+  else
+  {
+      const auto& data = *(static_cast<const OpDataConv*>(node->user_data));
+      tflite::reference_ops::Conv(
+          ConvParamsFloat(params, data), tflite::micro::GetTensorShape(input),
+          tflite::micro::GetTensorData<float>(input),
+          tflite::micro::GetTensorShape(filter),
+          tflite::micro::GetTensorData<float>(filter),
+          tflite::micro::GetTensorShape(bias),
+          tflite::micro::GetOptionalTensorData<float>(bias),
+          tflite::micro::GetTensorShape(output),
+          tflite::micro::GetTensorData<float>(output),
+          tflite::micro::GetTensorShape(nullptr), nullptr);
+  }
+  return kTfLiteOk;
+}
+#endif // HIFI_VFPU
 
 TfLiteStatus ConvEvalHifi16(TfLiteContext* context, TfLiteNode* node,
                             const TfLiteConvParams& params,

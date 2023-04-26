@@ -206,7 +206,7 @@ TfLiteStatus MaxPrepareHifi(TfLiteContext* context, TfLiteNode* node) {
   TfLiteTensor* input =
       micro_context->AllocateTempInputTensor(node, kPoolingInputTensor);
 
-  if (input->type == kTfLiteInt8) {
+  if (input->type == kTfLiteInt8 || input->type == kTfLiteFloat32) {
     auto* params = reinterpret_cast<TfLitePoolParams*>(node->builtin_data);
     auto* data = static_cast<XtensaOpDataPooling*>(node->user_data);
 
@@ -222,7 +222,9 @@ TfLiteStatus MaxPrepareHifi(TfLiteContext* context, TfLiteNode* node) {
     const int output_height = output_shape.Dims(1);
     const int output_width = output_shape.Dims(2);
 
-    int required_scratch = xa_nn_maxpool_getsize(
+    int required_scratch = 0;
+      if(input->type == kTfLiteInt8){
+        required_scratch = xa_nn_maxpool_getsize(
         depth, PREC_8, PREC_8, input_height, input_width, params->filter_height,
         params->filter_width,
         params->stride_width,                    // x_stride,
@@ -230,7 +232,19 @@ TfLiteStatus MaxPrepareHifi(TfLiteContext* context, TfLiteNode* node) {
         data->reference_op_data.padding.width,   // x_padding,
         data->reference_op_data.padding.height,  // y_padding,
         output_height, output_width, 0 /* NHWC inpput */, 0 /* NHWC output */);
-
+      }
+#if HIFI_VFPU      
+      else if (input->type == kTfLiteFloat32){
+        required_scratch = xa_nn_maxpool_getsize(
+        depth, PREC_F32, PREC_F32, input_height, input_width, params->filter_height,
+        params->filter_width,
+        params->stride_width,                    // x_stride,
+        params->stride_height,                   // y_stride,
+        data->reference_op_data.padding.width,   // x_padding,
+        data->reference_op_data.padding.height,  // y_padding,
+        output_height, output_width, 0 /* NHWC inpput */, 0 /* NHWC output */);        
+      }
+#endif      
     if (required_scratch <= 0) {
       MicroPrintf("Maxpool: xa_nn_maxpool_getsize failed");
       return kTfLiteError;

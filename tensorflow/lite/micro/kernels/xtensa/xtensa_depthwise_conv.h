@@ -42,14 +42,22 @@ struct XtensaDepthwiseConvOpData {
 #if defined(HIFI4) || defined(HIFI5)
 TfLiteStatus DepthwiseConvPrepareHifi(TfLiteContext* context, TfLiteNode* node);
 
-TfLiteStatus DepthwiseConvEvalHifi(TfLiteContext* context, TfLiteNode* node,
+TfLiteStatus DepthwiseConvInt8EvalHifi(TfLiteContext* context, TfLiteNode* node,
                                    const TfLiteDepthwiseConvParams& params,
                                    const XtensaDepthwiseConvOpData& data,
                                    const TfLiteEvalTensor* input,
                                    const TfLiteEvalTensor* filter,
                                    const TfLiteEvalTensor* bias,
                                    TfLiteEvalTensor* output);
-
+#if HIFI_VFPU
+TfLiteStatus DepthwiseConvFloat32EvalHifi(TfLiteContext* context, TfLiteNode* node,
+                                   const TfLiteDepthwiseConvParams& params,
+                                   const XtensaDepthwiseConvOpData& data,
+                                   const TfLiteEvalTensor* input,
+                                   const TfLiteEvalTensor* filter,
+                                   const TfLiteEvalTensor* bias,
+                                   TfLiteEvalTensor* output);
+#endif
 TfLiteStatus DepthwiseConvReferenceEvalInt8(TfLiteContext* context,
                                             TfLiteNode* node);
 #endif  // defined(HIFI4) || defined(HIFI5)

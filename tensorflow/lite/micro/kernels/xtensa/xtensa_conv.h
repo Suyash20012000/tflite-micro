@@ -49,9 +49,7 @@ TfLiteStatus ConvEvalHifi(TfLiteContext* context, TfLiteNode* node,
                           const TfLiteEvalTensor* filter,
                           const TfLiteEvalTensor* bias,
                           TfLiteEvalTensor* output);
-#endif  // defined(HIFI4) || defined(HIFI5)
 
-#if defined(HIFI4) || defined(HIFI5)
 TfLiteStatus ConvEvalHifi16(TfLiteContext* context, TfLiteNode* node,
                             const TfLiteConvParams& params,
                             const XtensaConvOpData& data,
@@ -59,6 +57,19 @@ TfLiteStatus ConvEvalHifi16(TfLiteContext* context, TfLiteNode* node,
                             const TfLiteEvalTensor* filter,
                             const TfLiteEvalTensor* bias,
                             TfLiteEvalTensor* output);
+
+#if HIFI_VFPU
+
+TfLiteStatus ConvEvalHifiFloat(TfLiteContext* context, TfLiteNode* node,
+                            const TfLiteConvParams& params,
+                            const XtensaConvOpData& data,
+                            const TfLiteEvalTensor* input,
+                            const TfLiteEvalTensor* filter,
+                            const TfLiteEvalTensor* bias,
+                            TfLiteEvalTensor* output);
+
+#endif // HIFI_VFPU
+
 #endif  // defined(HIFI4) || defined(HIFI5)
 
 #if defined(VISION_P6)
