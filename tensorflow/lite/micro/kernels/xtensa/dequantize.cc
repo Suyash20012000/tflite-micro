@@ -45,7 +45,7 @@ TfLiteStatus DequantizeEval(TfLiteContext* context, TfLiteNode* node) {
   if (output->type == kTfLiteFloat32) {
     switch (input->type) {
       case kTfLiteInt8 : {
-#if HIFI_VFPU && (defined(HIFI5) || defined(HIFI4))
+#if HIFI_VFPU && (defined(HIFI5) || defined(HIFI4)) && defined(ENABLE_F32_KERNELS)
         int err;
         const int8_t *input_data_ptr;
         float *output_data_ptr;
@@ -65,11 +65,11 @@ TfLiteStatus DequantizeEval(TfLiteContext* context, TfLiteNode* node) {
                                   tflite::micro::GetTensorData<int8_t>(input),
                                   tflite::micro::GetTensorShape(output),
                                   tflite::micro::GetTensorData<float>(output));
-#endif // HAVE_VFPU && (defined(HIFI5) || defined(HIFI4))
+#endif // HIFI_VFPU && (defined(HIFI5) || defined(HIFI4)) && defined(ENABLE_F32_KERNELS)
         break;
       }
       case kTfLiteInt16 : {
-#if HIFI_VFPU && (defined(HIFI5) || defined(HIFI4))
+#if HIFI_VFPU && (defined(HIFI5) || defined(HIFI4)) && defined(ENABLE_F32_KERNELS)
         int err;
         const int16_t *input_data_ptr;
         float *output_data_ptr;

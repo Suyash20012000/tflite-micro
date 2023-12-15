@@ -9,6 +9,7 @@
 #      For example: HIFI_190304_swupgrade
 
 TARGET_ARCH :=
+ENABLE_FLOAT_KERNELS :=
 XTENSA_USE_LIBC :=
 
 # Allow additional flags on the command line for debugging.
@@ -28,6 +29,10 @@ endif
 
 ifeq ($(TARGET_ARCH), )
   $(error TARGET_ARCH must be specified on the command line)
+endif
+
+ifeq ($(ENABLE_FLOAT_KERNELS), 1)
+  ENABLE_FLOAT_KERNELS_DEFINES := -DENABLE_F32_KERNELS
 endif
 
 # Create a cflag based on the specified TARGET_ARCH. For example:
@@ -51,6 +56,8 @@ PLATFORM_FLAGS = \
   $(TARGET_ARCH_DEFINES) \
   -mlongcalls
 
+KERNEL_ENABLE_FLAGS = $(ENABLE_FLOAT_KERNELS_DEFINES) 
+
 export PATH := $(XTENSA_BASE)/tools/$(XTENSA_TOOLS_VERSION)/XtensaTools/bin:$(PATH)
 TARGET_TOOLCHAIN_PREFIX := xt-
 CXX_TOOL := clang++
@@ -70,6 +77,9 @@ else
   # Xtensa toolchain.
   CXXFLAGS := $(filter-out -fno-rtti, $(CXXFLAGS))
 endif
+
+CXXFLAGS += $(KERNEL_ENABLE_FLAGS)
+CCFLAGS += $(KERNEL_ENABLE_FLAGS)
 
 CXXFLAGS += $(PLATFORM_FLAGS)
 CCFLAGS += $(PLATFORM_FLAGS)
