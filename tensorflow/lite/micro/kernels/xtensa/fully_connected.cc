@@ -31,6 +31,63 @@ namespace tflite {
 
 namespace {
 
+TfLiteStatus EvalInt4xInt8(TfLiteContext* context, TfLiteNode* node) {
+  
+  const TfLiteEvalTensor* input =
+      tflite::micro::GetEvalInput(context, node, kFullyConnectedInputTensor);
+  const TfLiteEvalTensor* filter =
+      tflite::micro::GetEvalInput(context, node, kFullyConnectedWeightsTensor);
+  const TfLiteEvalTensor* bias =
+      tflite::micro::GetEvalInput(context, node, kFullyConnectedBiasTensor);
+  TfLiteEvalTensor* output =
+      tflite::micro::GetEvalOutput(context, node, kFullyConnectedOutputTensor);
+
+  TFLITE_DCHECK(node->user_data != nullptr);
+
+  const auto& data =
+      *(static_cast<const OpDataFullyConnected*>(node->user_data));
+      return XtensaEvalFullyConnectedQuantizedInt8(
+          context, node, data, input, filter, bias, output);
+  }
+
+TfLiteStatus EvalInt8xInt8(TfLiteContext* context, TfLiteNode* node) {
+
+  const TfLiteEvalTensor* input =
+      tflite::micro::GetEvalInput(context, node, kFullyConnectedInputTensor);
+  const TfLiteEvalTensor* filter =
+      tflite::micro::GetEvalInput(context, node, kFullyConnectedWeightsTensor);
+  const TfLiteEvalTensor* bias =
+      tflite::micro::GetEvalInput(context, node, kFullyConnectedBiasTensor);
+  TfLiteEvalTensor* output =
+      tflite::micro::GetEvalOutput(context, node, kFullyConnectedOutputTensor);
+
+  TFLITE_DCHECK(node->user_data != nullptr);
+
+  const auto& data =
+      *(static_cast<const OpDataFullyConnected*>(node->user_data));
+      return XtensaEvalFullyConnectedQuantizedInt8(
+          context, node, data, input, filter, bias, output);
+  }
+
+TfLiteStatus EvalInt8xInt16(TfLiteContext* context, TfLiteNode* node) {
+
+  const TfLiteEvalTensor* input =
+      tflite::micro::GetEvalInput(context, node, kFullyConnectedInputTensor);
+  const TfLiteEvalTensor* filter =
+      tflite::micro::GetEvalInput(context, node, kFullyConnectedWeightsTensor);
+  const TfLiteEvalTensor* bias =
+      tflite::micro::GetEvalInput(context, node, kFullyConnectedBiasTensor);
+  TfLiteEvalTensor* output =
+      tflite::micro::GetEvalOutput(context, node, kFullyConnectedOutputTensor);
+
+  TFLITE_DCHECK(node->user_data != nullptr);
+
+  const auto& data =
+      *(static_cast<const OpDataFullyConnected*>(node->user_data));
+      return XtensaEvalFullyConnectedQuantizedInt16(
+          context, node, data, input, filter, bias, output);
+  }
+
 TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
   TFLITE_DCHECK(node->builtin_data != nullptr);
   const auto* params =
@@ -115,6 +172,21 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
 TFLMRegistration Register_FULLY_CONNECTED() {
   return tflite::micro::RegisterOp(XtensaInitFullyConnected,
                                    XtensaPrepareFullyConnected, Eval);
+}
+
+TFLMRegistration Register_FULLY_CONNECTED_INT4xINT8() {
+  return tflite::micro::RegisterOp(XtensaInitFullyConnected,
+                                   XtensaPrepareFullyConnected, EvalInt4xInt8);
+}
+
+TFLMRegistration Register_FULLY_CONNECTED_INT8xINT8() {
+  return tflite::micro::RegisterOp(XtensaInitFullyConnected,
+                                   XtensaPrepareFullyConnected, EvalInt8xInt8);
+}
+
+TFLMRegistration Register_FULLY_CONNECTED_INT8xINT16() {
+  return tflite::micro::RegisterOp(XtensaInitFullyConnected,
+                                   XtensaPrepareFullyConnected, EvalInt8xInt16);
 }
 
 TFLMInferenceRegistration RegisterInference_FULLY_CONNECTED() {

@@ -73,10 +73,14 @@ TfLiteStatus CalculateOpDataFullyConnected(
 // implementation (reference or optimized) must define this function.
 TFLMRegistration Register_FULLY_CONNECTED();
 
-#if defined(CMSIS_NN) || defined(HEXAGON) || defined(XTENSA)
+#if defined(CMSIS_NN) || defined(HEXAGON)
 // Returns a TFLMRegistration struct for kernel variant that only supports
 // int8.
 TFLMRegistration Register_FULLY_CONNECTED_INT8();
+
+#elif defined(XTENSA)
+
+TFLMRegistration Register_FULLY_CONNECTED_INT8xINT8();
 
 #else
 // Note that while this block gets used for both reference and optimized kernels
@@ -90,10 +94,14 @@ inline TFLMRegistration Register_FULLY_CONNECTED_INT8() {
 
 #endif
 
-#if defined(CMSIS_NN) || defined(XTENSA)
+#if defined(CMSIS_NN) 
 // Returns a TFLMRegistration struct for kernel variant that only supports
 // int16.
 TFLMRegistration Register_FULLY_CONNECTED_INT16();
+
+#elif defined(XTENSA)
+
+TFLMRegistration Register_FULLY_CONNECTED_INT8xINT16();
 
 #else
 // Note that while this block gets used for both reference and optimized kernels
@@ -104,6 +112,12 @@ TFLMRegistration Register_FULLY_CONNECTED_INT16();
 inline TFLMRegistration Register_FULLY_CONNECTED_INT16() {
   return Register_FULLY_CONNECTED();
 }
+
+#if defined(XTENSA)
+
+TFLMRegistration Register_FULLY_CONNECTED_INT4xINT8();
+
+#endif
 
 #endif
 
